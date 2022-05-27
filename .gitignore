@@ -1,0 +1,129 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+utils/
+
+# folders
+cleaners/CleanML/
+cleaners/activeclean
+RAHA/
+datasets/
+cleaners/openrefine-3.4.1/
+cleaners/raha/supplementaries/
+tools/
+utils/adults
+cleaners/katara/knowledge-base
+strategy-profiling/
+raha-baran-results-adult
+reports
+
+datasets/airbnb/actual_errors.csv
+datasets/airbnb/data_augmentation_experiment/
+datasets/airbnb/raha-baran-results-airbnb/
+datasets/airbnb/results/
+datasets/beers/actual_errors.csv
+datasets/beers/data_description.csv
+datasets/beers/raha-baran-results-beers/
+datasets/beers/results/
+
+datasets/flights/clean_original.csv
+datasets/flights/data_description.csv
+datasets/flights/dirty_original.csv
+datasets/flights/results
+
+MANIFEST.in
+input/
+test_beers.py
+backup/
+# extensions
+*.pkl
+*.json
+
+# Cextensions
+*.so
+
+# Distribution / packaging
+.Python
+venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# DotEnv configuration
+.env
+
+# Database
+*.db
+*.rdb
+
+# Pycharm
+.idea
+
+# VS Code
+.vscode/
+
+# Spyder
+.spyproject/
+
+# Jupyter NB Checkpoints
+.ipynb_checkpoints/
+
+# exclude data from source control by default
+#/data/
+
+# Mac OS-specific storage files
+.DS_Store
+
+# vim
+*.swp
+*.swo
+
+# Mypy cache
+.mypy_cache/
+
+

@@ -1,0 +1,11 @@
+matplotlib
+numpy
+pandas
+sklearn
+xgboost
+seaborn
+graphviz
+jinja2
+scipy
+eli5
+psycopg2
