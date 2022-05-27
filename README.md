@@ -20,7 +20,7 @@ Please, cite our paper if you use the code.
   volume={},
   number={},
   pages={},
-  year={2022},
+  year={2023},
   publisher={VLDB Endowment}
 }
 ```
