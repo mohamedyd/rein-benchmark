@@ -11,7 +11,6 @@ RAHA/
 datasets/
 cleaners/openrefine-3.4.1/
 cleaners/raha/supplementaries/
-tools/
 utils/adults
 cleaners/katara/knowledge-base
 strategy-profiling/

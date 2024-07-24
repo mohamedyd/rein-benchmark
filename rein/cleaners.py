@@ -18,6 +18,8 @@ import numbers
 import time
 from sklearn import preprocessing
 import datawig
+import os
+import pandas as pd
 from missingpy import MissForest
 from impyute.imputation.cs import em as impEM
 from sklearn.preprocessing import OrdinalEncoder
@@ -100,6 +102,7 @@ class Cleaners:
             self.duplicatesCleaner,
             self.dcHoloCleaner,
             self.openrefine,
+            self.lop,
         ]
         self.model_oriented_cleaners_list = [
             self.boostClean,
@@ -158,6 +161,14 @@ class Cleaners:
         cleanedDF (dataframe) -- dataframe that was repaired
         """
 
+        def convert_to_float_or_nan(matrix):
+            for (x,y), _ in np.ndenumerate(matrix):
+                try:
+                    matrix[x,y] = float(matrix[x,y])
+                except ValueError:
+                    matrix[x,y] = np.nan
+            return matrix
+
         # Initialize a dictionary to pack the results
         evaluation_dict = {}
 
@@ -165,7 +176,8 @@ class Cleaners:
         groundTruthDF = self.groundTruthDF.apply(pd.to_numeric, errors="ignore")
         gt_num_columns = groundTruthDF.select_dtypes(include="number").columns
         gt_cat_columns = groundTruthDF.select_dtypes(exclude="number").columns
-
+        print(gt_num_columns)
+        
         # ===================================================================================
         # Extract metadata of groundtruth, repaired and dirty dataset
         # ===================================================================================
@@ -198,49 +210,6 @@ class Cleaners:
 
         else:
 
-            # ====================================================================================
-            # Experiment 1: All Categorical
-            # interprete all columns as categrocial and calculate precision, recall, f1 """
-            # ====================================================================================
-            tp_all_cat = 0.0
-            all_cat_repairsCounter = 0
-            for (row_i, col_i), dummy in detections.items():
-
-                # For each detected cell, check if repair has happend
-                if cleanedDF.iat[row_i, col_i] != dirtyDF.iat[row_i, col_i]:
-                    # counter all repairs
-                    all_cat_repairsCounter += 1
-
-                    # Check if detected error was corretly repaired
-                    """ Compares values, but first it could happen that e.g. 23 and 23.0 are not count as 
-                        equal (if dtype of cleanedDF value is String) 
-                        First if gets mainly equivalence btw. categorical values
-                    """
-                    try:
-                        if float(cleanedDF.iat[row_i, col_i]) == float(self.groundTruthDF.iat[row_i, col_i]):
-                            tp_all_cat += 1
-                    except:
-                        if cleanedDF.iat[row_i, col_i] == self.groundTruthDF.iat[row_i, col_i]:
-                            tp_all_cat += 1
-
-            # Estimate precision, recall, and F1
-            precision_all_cat = 0.0 if all_cat_repairsCounter == 0 else tp_all_cat / all_cat_repairsCounter
-            recall_all_cat = (
-                0.0 if len(self.actual_errors_dict) == 0 else tp_all_cat / len(self.actual_errors_dict) )
-            f1_all_cat = (
-                0.0 if (precision_all_cat + recall_all_cat) == 0
-                else (2 * precision_all_cat * recall_all_cat) / (precision_all_cat + recall_all_cat) )
-
-            exp1_evaluation = {
-                                   "#total_repairs" : all_cat_repairsCounter,
-                                   "#correct_repairs(tp)" : tp_all_cat,
-                                   "#actual_errors" : len(self.actual_errors_dict),
-                                   "precision": precision_all_cat,
-                                   "recall": recall_all_cat,
-                                   "f1": f1_all_cat,
-                                      }
-
-
             # =================================================================================
             # Experiment 2: Only Numerical
             # only numerical columns of groundtruth, removes values from consideration for RMSE
@@ -252,16 +221,12 @@ class Cleaners:
                 y_groundtruth = groundTruthDF[gt_num_columns].to_numpy(dtype=float)
                 y_cleaned = cleanedDF[gt_num_columns].to_numpy()
                 y_dirty = dirtyDF[gt_num_columns].to_numpy()
-
-                for (x,y), _ in np.ndenumerate(y_groundtruth):
-                    try:
-                        y_cleaned[x,y] = float(y_cleaned[x,y])
-                        y_dirty[x,y] = float(y_dirty[x,y])
-                        y_groundtruth[x,y] = float(y_groundtruth[x,y])
-                    except:
-                        y_cleaned[x,y] = np.nan
-                        y_dirty[x,y] = np.nan
-                        y_groundtruth[x,y] = np.nan
+                
+                # convert each element in y_cleaned, y_dirty, and y_groundtruth to a float, and 
+                # if it fails (due to the element not being a number), sets that element to NaN.
+                y_cleaned = convert_to_float_or_nan(y_cleaned)
+                y_dirty = convert_to_float_or_nan(y_dirty)
+                y_groundtruth = convert_to_float_or_nan(y_groundtruth)
 
                 scaler = StandardScaler()
                 """ y_groundtruth, y_cleaned, y_dirty have nan at the same positions
@@ -269,17 +234,20 @@ class Cleaners:
 
                 # scale, remove nan values
                 y_true = scaler.fit_transform(y_groundtruth).flatten().astype(float)
-                y_true = y_true[np.logical_not(np.isnan(y_true))]
-
+                #y_true = y_true[np.logical_not(np.isnan(y_true))] # remove nan
+                y_true = np.nan_to_num(y_true) # replace nan with zero
+                
                 # scale, remove nan values and calculate rmse for repaired dataset
-                y_pred = scaler.fit_transform(y_cleaned).flatten().astype(float)
-                y_pred = y_pred[np.logical_not(np.isnan(y_pred))]
+                y_pred = scaler.transform(y_cleaned).flatten().astype(float)
+                #y_pred = y_pred[np.logical_not(np.isnan(y_pred))] # remove nan
+                y_pred = np.nan_to_num(y_pred)
                 rmse_repaired = mean_squared_error(y_true, y_pred, squared=False)
 
                 # scale, remove nan values and calculate rmse for dirty dataset
-                y_pred = scaler.fit_transform(y_dirty).flatten().astype(float)
-                y_pred = y_pred[np.logical_not(np.isnan(y_pred))]
-                rmse_dirty = mean_squared_error(y_true, y_pred, squared=False)
+                y_pred2 = scaler.transform(y_dirty).flatten().astype(float)
+                #y_pred = y_pred[np.logical_not(np.isnan(y_pred))] # remove nan
+                y_pred2 = np.nan_to_num(y_pred2)
+                rmse_dirty = mean_squared_error(y_true, y_pred2, squared=False)
 
             else:
                 rmse_repaired, rmse_dirty = 0.0, 0.0
@@ -289,6 +257,19 @@ class Cleaners:
                                    "rmse_dirty": rmse_dirty,
                                       }
 
+            #evaluation_dict = {
+            #    "gt_#cat_col": len(gt_cat_columns),
+            #    'gt_#num_col': len(gt_num_columns),
+            #    "repaired_#cat_col": len(cleanedDF.select_dtypes(exclude="number").columns),
+            #    'repaired_#num_col': len(cleanedDF.select_dtypes(include="number").columns),
+            #    "dirty_#cat_col": len(dirtyDF.select_dtypes(exclude="number").columns),
+            #    'dirty_#num_col': len(dirtyDF.select_dtypes(include="number").columns),
+
+            #    'onlyNum_rmse_repaired': exp2_evaluation["rmse_repaired"],
+            #    'onlyNum_rmse_dirty': exp2_evaluation["rmse_dirty"],
+
+            #}
+            
             # =============================================================================
             #  Experiment 3: Only Categorical
             #  calculate f1, precision, recall for only categorical columns of groundtruth
@@ -298,6 +279,9 @@ class Cleaners:
             cat_repairsCounter = 0
             actual_errors_cat_dict = {(row, col): value for (row, col), value in self.actual_errors_dict.items() if self.groundTruthDF.columns[col] in gt_cat_columns}
             for (row_i, col_i), dummy in detections.items():
+
+                if row_i >= dirtyDF.shape[0]:
+                    continue 
 
                 # if detection is in a categorical column of groundtruth
                 if cleanedDF.columns[col_i] in gt_cat_columns:
@@ -332,13 +316,6 @@ class Cleaners:
                 "dirty_#cat_col": len(dirtyDF.select_dtypes(exclude="number").columns),
                 'dirty_#num_col': len(dirtyDF.select_dtypes(include="number").columns),
 
-                'allCat_total_repairs': exp1_evaluation['#total_repairs'],
-                'allCat_tp': exp1_evaluation['#correct_repairs(tp)'],
-                'allCat_actual_#errors': exp1_evaluation['#actual_errors'],
-                'allCat_p': exp1_evaluation['precision'],
-                'allCat_r': exp1_evaluation['recall'],
-                'allCat_f': exp1_evaluation['f1'],
-
                 'onlyNum_rmse_repaired': exp2_evaluation["rmse_repaired"],
                 'onlyNum_rmse_dirty': exp2_evaluation["rmse_dirty"],
 
@@ -351,6 +328,8 @@ class Cleaners:
 
                 'model': None
             }
+            
+            
 
         return evaluation_dict
 
@@ -1045,6 +1024,34 @@ class Cleaners:
         results["cleaning_runtime"] = cleaning_runtime
 
         return repairedDF, results
+
+    def lop(self, dirtyDF, detection_dictionary, configs):
+        """_summary_
+
+        Args:
+            dirtyDF (DataFrame): dirty version of a dataset
+            detection_dictionary (Dictionary): indexes of detected dirty cells
+            configs (Dictionary): configurations to run the method
+        
+        Returns:
+            _type_: _description_
+        """
+        
+        # Extract the dataset name
+        dataset_name = self.__dataset_name
+        
+        dataset_dict = datasets_dictionary[self.__dataset_name]
+        results = {}
+        
+        # Load the repaired data
+        repaired_path = self.__get_cleaner_directory("lop")
+        cleanedDF = pd.read_csv(os.path.join(repaired_path, 'repaired.csv'), encoding="utf-8", header="infer", 
+                                keep_default_na=False, low_memory=False)
+        cleanedDF.reset_index(drop=True, inplace=True) 
+        results = self.__evaluate(detection_dictionary, dirtyDF, cleanedDF)
+        print(results)
+        
+        return cleanedDF, results
 
     ##########################################################################
     # The following cleaners dont create a repaired version of the dataset

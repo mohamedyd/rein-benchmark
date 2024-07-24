@@ -1,0 +1,2 @@
+from .random_active_domain import Random_Active_Domain
+from .Similar_based_active_domain import Similar_Based_Active_Domain

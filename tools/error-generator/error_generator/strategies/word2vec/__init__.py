@@ -1,0 +1,1 @@
+from .word2vec_nearest_neighbor import Word2vec_Nearest_Neighbor
