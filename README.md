@@ -20,7 +20,7 @@ Please, cite our paper if you use the code.
   volume={},
   number={},
   pages={},
-  year={2022},
+  year={2023},
   publisher={VLDB Endowment}
 }
 ```
@@ -29,7 +29,7 @@ Please, cite our paper if you use the code.
 
 Clone with submodules
 ```shell script
-git clone http://audio.digitalbusinessplatform.de/gitlab/kompaki/benchmark/benchmark.git --recurse-submodules
+git clone https://github.com/mohamedyd/rein-benchmark.git --recurse-submodules
 ```
 
 Create a virtual environment and install requirements
