@@ -99,7 +99,10 @@ bash create_pd_user_ubuntu.sh
 Download the knowledge base of KATARA ([link](https://bit.ly/3hPkpWX)) and unzip the file
 ```shell script
 cd cleaners/katara/knowedge-base
-``` 
+```
+
+### Data
+You can download more datasets used in the benchmark from this [link](https://www.researchgate.net/publication/382496079_Datasets_of_REIN_Benchmark).
 
 ## Usage
 
